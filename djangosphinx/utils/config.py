@@ -1,3 +1,4 @@
+import django
 from django.conf import settings
 from django.template import Template, Context
 
@@ -10,11 +11,19 @@ import djangosphinx.apis.current as sphinxapi
 
 __all__ = ('generate_config_for_model', 'generate_config_for_models')
 
+DJANGO_MINOR_VERSION = float(".".join([str(django.VERSION[0]), str(django.VERSION[1])]))
+
 def _get_database_engine():
-    if 'mysql' in settings.DATABASES['default']['ENGINE']:
-        return 'mysql'
-    elif 'postgresql' in settings.DATABASES['default']['ENGINE']:
-        return 'pgsql'
+    if DJANGO_MINOR_VERSION < 1.2:
+        if settings.DATABASE_ENGINE == 'mysql':
+            return settings.DATABASE_ENGINE
+        elif settings.DATABASE_ENGINE.startswith('postgresql'):
+            return 'pgsql'    
+    else:
+        if 'mysql' in settings.DATABASES['default']['ENGINE']:
+            return 'mysql'
+        elif 'postgresql' in settings.DATABASES['default']['ENGINE']:
+            return 'pgsql'
     raise ValueError, "Only MySQL and PostgreSQL engines are supported by Sphinx."
 
 def _get_template(name):
@@ -47,16 +56,29 @@ def _is_sourcable_field(field):
     return False
 
 # No trailing slashes on paths
-DEFAULT_SPHINX_PARAMS = {
-    'database_engine': _get_database_engine(),
-    'database_host': settings.DATABASES['default']['HOST'],
-    'database_port': settings.DATABASES['default']['PORT'],
-    'database_name': settings.DATABASES['default']['NAME'],
-    'database_user': settings.DATABASES['default']['USER'],
-    'database_password': settings.DATABASES['default']['PASSWORD'],
-    'log_file': '/var/log/sphinx/searchd.log',
-    'data_path': '/var/data',
-}
+
+if DJANGO_MINOR_VERSION < 1.2:
+    DEFAULT_SPHINX_PARAMS = {
+        'database_engine': _get_database_engine(),
+        'database_host': settings.DATABASE_HOST,
+        'database_port': settings.DATABASE_PORT,
+        'database_name': settings.DATABASE_NAME,
+        'database_user': settings.DATABASE_USER,
+        'database_password': settings.DATABASE_PASSWORD,
+        'log_file': '/var/log/sphinx/searchd.log',
+        'data_path': '/var/data',
+    }
+else:
+    DEFAULT_SPHINX_PARAMS = {
+        'database_engine': _get_database_engine(),
+        'database_host': settings.DATABASES['default']['HOST'],
+        'database_port': settings.DATABASES['default']['PORT'],
+        'database_name': settings.DATABASES['default']['NAME'],
+        'database_user': settings.DATABASES['default']['USER'],
+        'database_password': settings.DATABASES['default']['PASSWORD'],
+        'log_file': '/var/log/sphinx/searchd.log',
+        'data_path': '/var/data',
+    }
 
 def get_index_context(index):
     params = DEFAULT_SPHINX_PARAMS
