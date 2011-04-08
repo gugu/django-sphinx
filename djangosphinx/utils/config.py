@@ -24,6 +24,8 @@ def _get_database_engine():
             return 'mysql'
         elif 'postgresql' in settings.DATABASES['default']['ENGINE']:
             return 'pgsql'
+        elif 'postgis' in settings.DATABASES['default']['ENGINE']:
+            return 'pgsql'
     raise ValueError, "Only MySQL and PostgreSQL engines are supported by Sphinx."
 
 def _get_template(name):
